@@ -32,54 +32,69 @@ func main() {
 	}
 }
 
+// generateHelm runs `helm template` to render a chart as Kubernetes manifests.
+// Expects input["name"] (release name) and input["chart"] (chart path or name).
 func generateHelm(input map[string]interface{}) map[string]interface{} {
-	cmd := exec.Command("helm", "template", 
-		input["name"].(string),
-		input["chart"].(string))
-	
+	name, nameOk := input["name"].(string)
+	chart, chartOk := input["chart"].(string)
+	if !nameOk || !chartOk || name == "" || chart == "" {
+		return map[string]interface{}{
+			"success": false,
+			"error":   "Both 'name' and 'chart' must be provided",
+		}
+	}
+
+	cmd := exec.Command("helm", "template", name, chart)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": string(output),
+			"error":   string(output) + "\n" + err.Error(),
 		}
 	}
 	return map[string]interface{}{
-		"success": true,
+		"success":  true,
 		"manifest": string(output),
 	}
 }
 
+// validateK8s writes a manifest to a temp file and runs `kubectl apply --dry-run=server` to validate it.
+// Optionally uses input["kubeconfig"] for cluster context.
 func validateK8s(input map[string]interface{}) map[string]interface{} {
 	manifest, ok := input["manifest"].(string)
-	if !ok {
+	if !ok || manifest == "" {
 		return map[string]interface{}{
 			"success": false,
-			"error": "No manifest provided",
+			"error":   "No manifest provided",
 		}
 	}
 
-	// Write manifest to temp file
 	tmpfile, err := os.CreateTemp("", "k8s-validate-")
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": err.Error(),
+			"error":   "Failed to create temp file: " + err.Error(),
 		}
 	}
 	defer os.Remove(tmpfile.Name())
 
 	if _, err := tmpfile.WriteString(manifest); err != nil {
+		tmpfile.Close()
 		return map[string]interface{}{
 			"success": false,
-			"error": err.Error(),
+			"error":   "Failed to write manifest: " + err.Error(),
 		}
 	}
-	tmpfile.Close()
+	if err := tmpfile.Close(); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"error":   "Failed to close temp file: " + err.Error(),
+		}
+	}
 
-	// Run kubectl validate
 	cmd := exec.Command("kubectl", "apply", "--dry-run=server", "-f", tmpfile.Name())
-	if kubeconfig, ok := input["kubeconfig"].(string); ok {
+	if kubeconfig, ok := input["kubeconfig"].(string); ok && kubeconfig != "" {
 		cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
 	}
 
@@ -87,7 +102,7 @@ func validateK8s(input map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": string(output),
+			"error":   string(output) + "\n" + err.Error(),
 		}
 	}
 
@@ -97,6 +112,7 @@ func validateK8s(input map[string]interface{}) map[string]interface{} {
 	}
 }
 
+// toJSON marshals a Go value to JSON string, returning an error JSON if marshaling fails.
 func toJSON(data interface{}) string {
 	bytes, err := json.Marshal(data)
 	if err != nil {

@@ -1,7 +1,0 @@
-argocd:
-  apiUrl: http://argocd-server
-  username: admin
-  password: password123
-
-postgresql:
-  url: postgres://user:pass@postgres:5432/infrakit

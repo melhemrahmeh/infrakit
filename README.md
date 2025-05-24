@@ -1,6 +1,6 @@
 # InfraKit
 
-InfraKit is a powerful CLI tool designed to automate service onboarding and GitOps deployments across multiple Kubernetes clusters using ArgoCD, Helm, PostgreSQL, and Redis.
+Multi-Cluster GitOps Automation Toolkit
 
 ## Table of Contents
 - [Features](#features)
@@ -157,4 +157,4 @@ make test-integration
 
 ## License
 
-MIT
+Apache 2.0 © YourOrg

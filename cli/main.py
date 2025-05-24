@@ -4,7 +4,7 @@ import logging
 from config.settings import load_config
 from db_manager import DBManager
 from argocd_manager import ArgoCDManager
-from redis_manager import RedisManager  # Added Redis import
+from redis_manager import RedisManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ def main():
     config = load_config()
     db = DBManager(config['postgresql']['url'])
     argocd = ArgoCDManager(config['argocd'])
-    redis = RedisManager(config['redis']['url'])  # Initialize Redis
+    redis = RedisManager(config['redis']['url'])
     
     parser = argparse.ArgumentParser(description='InfraKit CLI')
     subparsers = parser.add_subparsers(dest='command', required=True)
