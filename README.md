@@ -157,4 +157,4 @@ make test-integration
 
 ## License
 
-Apache 2.0 © YourOrg
+MIT License
